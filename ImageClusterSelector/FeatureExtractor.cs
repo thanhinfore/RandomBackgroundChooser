@@ -36,11 +36,17 @@ namespace ImageClusterSelector
             using Image<Rgba32> image = Image.Load<Rgba32>(imagePath);
             int binsPerChannel = _config.HistogramBins;
             int[] bins = new int[binsPerChannel * 3];
-            foreach (var pixel in image.GetPixelSpan())
+
+            for (int y = 0; y < image.Height; y++)
             {
-                bins[pixel.R * binsPerChannel / 256]++;
-                bins[binsPerChannel + pixel.G * binsPerChannel / 256]++;
-                bins[2 * binsPerChannel + pixel.B * binsPerChannel / 256]++;
+                var row = image.GetPixelRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    var pixel = row[x];
+                    bins[pixel.R * binsPerChannel / 256]++;
+                    bins[binsPerChannel + pixel.G * binsPerChannel / 256]++;
+                    bins[2 * binsPerChannel + pixel.B * binsPerChannel / 256]++;
+                }
             }
             double[] hist = new double[bins.Length];
             double total = image.Width * image.Height;
