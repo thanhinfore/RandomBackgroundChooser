@@ -1,23 +1,28 @@
-Phát triển hệ thống Image Clustering & Selection với các tính năng:
+# Image Clustering & Selection
 
-CORE FEATURES:
-- Phân tích màu sắc: RGB histogram, dominant colors extraction
-- Phân tích nội dung: object detection (YOLO/ResNet), scene classification
-- Thuật toán matching: weighted scoring (60% color, 40% content)
-- Caching: lưu pre-computed features để tăng tốc
+Ứng dụng này được viết bằng **Python 3** nhằm trích xuất và so khớp đặc trưng ảnh.
+Chương trình hỗ trợ phân tích màu sắc, vector nội dung đơn giản và lưu cache đặc
+trưng vào SQLite để tăng tốc xử lý.
 
-TECHNICAL SPECS:
-- Framework: Python 3.9+, FastAPI cho API
-- Libraries: OpenCV, scikit-image, torch/tensorflow
-- Database: SQLite cho tracking history
-- Config: YAML file cho tuning parameters
+## Sử dụng
 
-WORKFLOW:
-1. Pre-process: Extract & cache features của toàn bộ ảnh
-2. Runtime: Random seed → Calculate distances → Select top-4 → Validate uniqueness
-3. Output: JSON với paths + similarity scores + preview grid
+```
+python image_cluster_selector.py config.yml /path/to/images
+```
 
-CONSTRAINTS:
-- Max processing time: 2s cho 1000 ảnh
-- Memory efficient: batch processing cho large datasets
-- Dùng python hoặc c# (console app trên windows)
+Đầu ra là JSON liệt kê các ảnh được chọn cùng điểm số tương đồng.
+
+### Cấu hình mẫu
+
+```yaml
+colorWeight: 0.6
+contentWeight: 0.4
+cachePath: features.db
+histogramBins: 16
+contentSize: 8
+```
+
+## Ghi chú
+
+Mã nguồn mới chỉ là khung cơ bản, chưa tích hợp các mô hình deep learning. Người
+dùng có thể bổ sung thư viện YOLO/ResNet tuỳ ý.
