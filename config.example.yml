@@ -1,0 +1,5 @@
+colorWeight: 0.6
+contentWeight: 0.4
+cachePath: features.db
+histogramBins: 16
+contentSize: 8
