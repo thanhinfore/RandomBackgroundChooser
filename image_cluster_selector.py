@@ -83,7 +83,7 @@ def preprocess_images(files, conn, config):
         executor.map(process, files)
 
 
-def select_images(features, config, count=4):
+def select_images(features, config, count=5):
     import random
 
     if not features:
@@ -105,7 +105,17 @@ def select_images(features, config, count=4):
 def main():
     parser = argparse.ArgumentParser(description="Image clustering and selection")
     parser.add_argument("config", help="YAML configuration file")
-    parser.add_argument("images", help="Folder containing images")
+    parser.add_argument(
+        "--images",
+        default=str(Path(__file__).parent),
+        help="Folder containing images (default: script directory)",
+    )
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=5,
+        help="Number of images to return",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -116,7 +126,7 @@ def main():
 
     preprocess_images(files, conn, config)
     features = load_all_features(conn)
-    result = select_images(features, config)
+    result = select_images(features, config, args.count)
     print(json.dumps(result, indent=2))
 
 

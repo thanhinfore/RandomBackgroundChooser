@@ -7,8 +7,10 @@ trưng vào SQLite để tăng tốc xử lý.
 ## Sử dụng
 
 ```
-python image_cluster_selector.py config.yml /path/to/images
+python image_cluster_selector.py config.yml --images /path/to/images --count 5
 ```
+
+Nếu không chỉ định `--images`, chương trình sẽ tìm ảnh trong cùng thư mục với tập tin Python.
 
 Đầu ra là JSON liệt kê các ảnh được chọn cùng điểm số tương đồng.
 
@@ -24,5 +26,4 @@ contentSize: 8
 
 ## Ghi chú
 
-Mã nguồn mới chỉ là khung cơ bản, chưa tích hợp các mô hình deep learning. Người
-dùng có thể bổ sung thư viện YOLO/ResNet tuỳ ý.
+Mã nguồn mới chỉ là khung cơ bản, chưa tích hợp các mô hình deep learning. Người dùng có thể bổ sung thư viện YOLO/ResNet tuỳ ý.
