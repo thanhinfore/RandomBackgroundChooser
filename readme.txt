@@ -10,6 +10,12 @@ trưng vào SQLite để tăng tốc xử lý.
 python image_cluster_selector.py config.yml /path/to/images
 ```
 
+Các thư viện cần cài đặt trước:
+
+```
+pip install -r requirements.txt
+```
+
 Đầu ra là JSON liệt kê các ảnh được chọn cùng điểm số tương đồng.
 
 ### Cấu hình mẫu
