@@ -4,23 +4,42 @@ import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-import yaml
-from PIL import Image
-import numpy as np
+try:
+    import yaml
+except ImportError as e:
+    raise SystemExit("PyYAML is required. Install it with 'pip install PyYAML'") from e
+
+try:
+    from PIL import Image
+except ImportError as e:
+    raise SystemExit("Pillow is required. Install it with 'pip install Pillow'") from e
+
+try:
+    import numpy as np
+except ImportError as e:
+    raise SystemExit("NumPy is required. Install it with 'pip install numpy'") from e
 
 
 def load_config(path):
-    with open(path, 'r', encoding='utf-8') as f:
-        return yaml.safe_load(f)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        raise SystemExit(f"Config file '{path}' not found")
+    except yaml.YAMLError as e:
+        raise SystemExit(f"Failed to parse YAML config: {e}")
 
 
 def init_db(db_path):
-    conn = sqlite3.connect(db_path)
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS features (path TEXT PRIMARY KEY, hist BLOB, content BLOB)"
-    )
-    conn.commit()
-    return conn
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS features (path TEXT PRIMARY KEY, hist BLOB, content BLOB)"
+        )
+        conn.commit()
+        return conn
+    except sqlite3.Error as e:
+        raise SystemExit(f"Database error: {e}")
 
 
 def has_features(conn, path):
@@ -29,25 +48,31 @@ def has_features(conn, path):
 
 
 def save_features(conn, path, hist, content):
-    conn.execute(
-        "INSERT OR REPLACE INTO features(path, hist, content) VALUES(?,?,?)",
-        (
-            path,
-            hist.astype(np.float64).tobytes(),
-            content.astype(np.float32).tobytes(),
-        ),
-    )
-    conn.commit()
+    try:
+        conn.execute(
+            "INSERT OR REPLACE INTO features(path, hist, content) VALUES(?,?,?)",
+            (
+                path,
+                hist.astype(np.float64).tobytes(),
+                content.astype(np.float32).tobytes(),
+            ),
+        )
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Failed to save features for {path}: {e}")
 
 
 def load_all_features(conn):
     result = []
-    for path, hist_blob, cont_blob in conn.execute(
-        "SELECT path, hist, content FROM features"
-    ):
-        hist = np.frombuffer(hist_blob, dtype=np.float64)
-        content = np.frombuffer(cont_blob, dtype=np.float32)
-        result.append({"path": path, "hist": hist, "content": content})
+    try:
+        for path, hist_blob, cont_blob in conn.execute(
+            "SELECT path, hist, content FROM features"
+        ):
+            hist = np.frombuffer(hist_blob, dtype=np.float64)
+            content = np.frombuffer(cont_blob, dtype=np.float32)
+            result.append({"path": path, "hist": hist, "content": content})
+    except sqlite3.Error as e:
+        print(f"Failed to load features from DB: {e}")
     return result
 
 
@@ -66,18 +91,24 @@ def compute_content_vector(img, size):
 
 
 def extract_features(path, config):
-    with Image.open(path) as img:
-        img = img.convert("RGB")
-        hist = compute_color_histogram(img, config.get("histogramBins", 16))
-        content = compute_content_vector(img, config.get("contentSize", 8))
-    return hist, content
+    try:
+        with Image.open(path) as img:
+            img = img.convert("RGB")
+            hist = compute_color_histogram(img, config.get("histogramBins", 16))
+            content = compute_content_vector(img, config.get("contentSize", 8))
+        return hist, content
+    except Exception as e:
+        raise RuntimeError(f"Failed to process image {path}: {e}")
 
 
 def preprocess_images(files, conn, config):
     def process(image_path):
         if not has_features(conn, image_path):
-            hist, content = extract_features(image_path, config)
-            save_features(conn, image_path, hist, content)
+            try:
+                hist, content = extract_features(image_path, config)
+                save_features(conn, image_path, hist, content)
+            except Exception as e:
+                print(e)
 
     with ThreadPoolExecutor() as executor:
         executor.map(process, files)
@@ -109,10 +140,16 @@ def main():
     args = parser.parse_args()
 
     config = load_config(args.config)
+    if not Path(args.images).exists():
+        raise SystemExit(f"Image folder '{args.images}' not found")
+
     conn = init_db(config.get("cachePath", "features.db"))
 
     exts = {".jpg", ".jpeg", ".png", ".bmp", ".gif"}
     files = [str(p) for p in Path(args.images).rglob("*") if p.suffix.lower() in exts]
+
+    if not files:
+        raise SystemExit("No images found")
 
     preprocess_images(files, conn, config)
     features = load_all_features(conn)
